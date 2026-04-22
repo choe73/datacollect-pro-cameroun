@@ -1,43 +1,39 @@
 """Data collection tasks."""
 
-import httpx
+import asyncio
 from datetime import datetime
 from typing import List, Dict, Any
 
 from app.celery_app import celery_app
-from app.core.config import settings
+from app.core.database import AsyncSessionLocal
+from app.services.data_collector import WorldBankCollector, NASAPowerCollector, FAOCollector
 
 
 @celery_app.task(bind=True, max_retries=3)
 def collect_world_bank_data(self, dry_run: bool = False) -> Dict[str, Any]:
     """Collect data from World Bank API."""
+    async def _collect():
+        async with AsyncSessionLocal() as db:
+            collector = WorldBankCollector(db)
+            return await collector.collect_all_indicators(
+                country_code="CMR",
+                start_year=2000,
+                end_year=2023,
+            )
+    
     try:
-        # World Bank API indicators for Cameroon
-        indicators = [
-            "SP.POP.TOTL",      # Population
-            "NY.GDP.MKTP.CD",   # GDP
-            "AG.LND.FRST.ZS",   # Forest area
-            "SE.PRM.ENRR",      # Primary enrollment
-            "SH.DYN.MORT",      # Mortality rate
-        ]
-        
         if dry_run:
             return {
                 "status": "dry_run",
                 "source": "world_bank",
-                "indicators": indicators,
                 "message": "Dry run - no data collected",
             }
         
-        # Actual collection would happen here
-        # For now, return a placeholder
-        
-        return {
-            "status": "success",
-            "source": "world_bank",
-            "records_collected": 0,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        # Run async collection
+        result = asyncio.run(_collect())
+        result["task_id"] = self.request.id
+        result["timestamp"] = datetime.utcnow().isoformat()
+        return result
         
     except Exception as exc:
         # Retry with exponential backoff
@@ -47,6 +43,14 @@ def collect_world_bank_data(self, dry_run: bool = False) -> Dict[str, Any]:
 @celery_app.task(bind=True, max_retries=3)
 def collect_nasa_power_data(self, dry_run: bool = False) -> Dict[str, Any]:
     """Collect meteorological data from NASA POWER API."""
+    async def _collect():
+        async with AsyncSessionLocal() as db:
+            collector = NASAPowerCollector(db)
+            return await collector.collect_meteo_data(
+                start_date="20200101",
+                end_date="20231231",
+            )
+    
     try:
         if dry_run:
             return {
@@ -55,15 +59,10 @@ def collect_nasa_power_data(self, dry_run: bool = False) -> Dict[str, Any]:
                 "message": "Dry run - no data collected",
             }
         
-        # NASA POWER API for Cameroon (approximate coordinates)
-        # Latitude: 3.8480° N, Longitude: 11.5021° E (Yaoundé)
-        
-        return {
-            "status": "success",
-            "source": "nasa_power",
-            "records_collected": 0,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        result = asyncio.run(_collect())
+        result["task_id"] = self.request.id
+        result["timestamp"] = datetime.utcnow().isoformat()
+        return result
         
     except Exception as exc:
         self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
@@ -72,6 +71,13 @@ def collect_nasa_power_data(self, dry_run: bool = False) -> Dict[str, Any]:
 @celery_app.task(bind=True, max_retries=3)
 def collect_fao_data(self, dry_run: bool = False) -> Dict[str, Any]:
     """Collect agricultural data from FAO API."""
+    async def _collect():
+        async with AsyncSessionLocal() as db:
+            collector = FAOCollector(db)
+            return await collector.collect_agricultural_data(
+                years=list(range(2010, 2024)),
+            )
+    
     try:
         if dry_run:
             return {
@@ -80,12 +86,10 @@ def collect_fao_data(self, dry_run: bool = False) -> Dict[str, Any]:
                 "message": "Dry run - no data collected",
             }
         
-        return {
-            "status": "success",
-            "source": "fao",
-            "records_collected": 0,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        result = asyncio.run(_collect())
+        result["task_id"] = self.request.id
+        result["timestamp"] = datetime.utcnow().isoformat()
+        return result
         
     except Exception as exc:
         self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
