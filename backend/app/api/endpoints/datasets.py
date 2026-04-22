@@ -74,9 +74,6 @@ async def get_dataset_data(
     service = DatasetService(db)
     column_list = columns.split(",") if columns else None
     data = await service.get_data(
-        dataset_id, 
-        page=page, 
-        per_page=per_page,
-        columns=column_list
+        dataset_id, page=page, per_page=per_page, columns=column_list
     )
     return data

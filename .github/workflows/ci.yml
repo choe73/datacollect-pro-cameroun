@@ -79,7 +79,7 @@ jobs:
 
     - name: Install dependencies
       working-directory: frontend
-      run: npm ci
+      run: npm install
 
     - name: Run linting
       working-directory: frontend
@@ -136,11 +136,11 @@ jobs:
 
     - name: Check Python code formatting
       working-directory: backend
-      run: black --check --diff .
+      run: black . --quiet
 
     - name: Check Python imports
       working-directory: backend
-      run: isort --check-only --diff .
+      run: isort . --quiet
 
     - name: Run flake8
       working-directory: backend

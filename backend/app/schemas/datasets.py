@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class DatasetBase(BaseModel):
     """Base dataset schema."""
+
     name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
     source: str = Field(..., min_length=1, max_length=100)
@@ -15,12 +16,14 @@ class DatasetBase(BaseModel):
 
 class DatasetCreate(DatasetBase):
     """Schema for creating a dataset."""
+
     schema: Dict[str, str] = Field(default_factory=dict)
     metadata: Optional[Dict[str, Any]] = None
 
 
 class DatasetUpdate(BaseModel):
     """Schema for updating a dataset."""
+
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
@@ -28,6 +31,7 @@ class DatasetUpdate(BaseModel):
 
 class Dataset(DatasetBase):
     """Complete dataset schema."""
+
     id: int
     row_count: int = 0
     columns: List[str] = Field(default_factory=list)
@@ -35,13 +39,14 @@ class Dataset(DatasetBase):
     created_at: datetime
     schema: Dict[str, str] = Field(default_factory=dict)
     metadata: Optional[Dict[str, Any]] = None
-    
+
     class Config:
         from_attributes = True
 
 
 class DatasetStats(BaseModel):
     """Dataset statistics."""
+
     dataset_id: int
     total_rows: int
     numeric_columns: List[str]
@@ -53,6 +58,7 @@ class DatasetStats(BaseModel):
 
 class DatasetQuery(BaseModel):
     """Query parameters for dataset data."""
+
     columns: Optional[List[str]] = None
     filters: Optional[Dict[str, Any]] = None
     sort_by: Optional[str] = None

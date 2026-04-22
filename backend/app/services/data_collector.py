@@ -15,9 +15,9 @@ from app.models.processed_data import ProcessedData
 
 class WorldBankCollector:
     """Collector for World Bank Open Data API."""
-    
+
     BASE_URL = "https://api.worldbank.org/v2"
-    
+
     # Key indicators for Cameroon
     INDICATORS = {
         "SP.POP.TOTL": "Population totale",
@@ -36,11 +36,11 @@ class WorldBankCollector:
         "FP.CPI.TOTL.ZG": "Inflation",
         "SL.UEM.TOTL.ZS": "Chômage",
     }
-    
+
     def __init__(self, db: AsyncSession):
         self.db = db
         self.client = httpx.AsyncClient(timeout=60.0)
-    
+
     async def collect_all_indicators(
         self,
         country_code: str = "CMR",
@@ -55,13 +55,13 @@ class WorldBankCollector:
             "indicators_processed": 0,
             "errors": [],
         }
-        
+
         for indicator_code, indicator_name in self.INDICATORS.items():
             try:
                 data = await self._fetch_indicator(
                     indicator_code, country_code, start_year, end_year
                 )
-                
+
                 if data:
                     # Store raw data
                     await self._store_raw_data(
@@ -74,16 +74,30 @@ class WorldBankCollector:
                             "data": data,
                         },
                     )
-                    
+
                     # Process and store structured data
                     for item in data:
                         if item.get("value") is not None:
                             await self._store_processed_data(
-                                domain="economy" if "GDP" in indicator_code or "FP.CPI" in indicator_code 
-                                      else "health" if "SH." in indicator_code
-                                      else "education" if "SE." in indicator_code
-                                      else "environment" if "AG.LND" in indicator_code or "EG." in indicator_code
-                                      else "demography",
+                                domain=(
+                                    "economy"
+                                    if "GDP" in indicator_code
+                                    or "FP.CPI" in indicator_code
+                                    else (
+                                        "health"
+                                        if "SH." in indicator_code
+                                        else (
+                                            "education"
+                                            if "SE." in indicator_code
+                                            else (
+                                                "environment"
+                                                if "AG.LND" in indicator_code
+                                                or "EG." in indicator_code
+                                                else "demography"
+                                            )
+                                        )
+                                    )
+                                ),
                                 indicator=indicator_name,
                                 date_value=datetime(int(item["date"]), 1, 1),
                                 numeric_value=float(item["value"]),
@@ -92,18 +106,20 @@ class WorldBankCollector:
                                     "country": country_code,
                                 },
                             )
-                    
+
                     results["records_collected"] += len(data)
                     results["indicators_processed"] += 1
-                    
+
             except Exception as e:
-                results["errors"].append({
-                    "indicator": indicator_code,
-                    "error": str(e),
-                })
-        
+                results["errors"].append(
+                    {
+                        "indicator": indicator_code,
+                        "error": str(e),
+                    }
+                )
+
         return results
-    
+
     async def _fetch_indicator(
         self,
         indicator: str,
@@ -118,16 +134,16 @@ class WorldBankCollector:
             "format": "json",
             "per_page": 100,
         }
-        
+
         response = await self.client.get(url, params=params)
         response.raise_for_status()
-        
+
         data = response.json()
         # World Bank returns [metadata, data] format
         if len(data) > 1:
             return data[1]
         return []
-    
+
     async def _store_raw_data(
         self,
         source: str,
@@ -138,13 +154,13 @@ class WorldBankCollector:
         # Generate hash for deduplication
         data_str = json.dumps(data, sort_keys=True)
         data_hash = hashlib.sha256(data_str.encode()).hexdigest()
-        
+
         # Check if already exists
         query = select(RawData).where(RawData.hash == data_hash)
         result = await self.db.execute(query)
         if result.scalar_one_or_none():
             return
-        
+
         raw_data = RawData(
             source=source,
             dataset_name=dataset_name,
@@ -154,7 +170,7 @@ class WorldBankCollector:
         )
         self.db.add(raw_data)
         await self.db.commit()
-    
+
     async def _store_processed_data(
         self,
         domain: str,
@@ -177,18 +193,18 @@ class WorldBankCollector:
 
 class NASAPowerCollector:
     """Collector for NASA POWER meteorological data API."""
-    
+
     BASE_URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
-    
+
     # Parameters for Cameroon
     PARAMETERS = [
         "PRECTOTCORR",  # Precipitation
-        "T2M",          # Temperature at 2 meters
-        "RH2M",         # Relative humidity at 2 meters
-        "WS10M",        # Wind speed at 10 meters
+        "T2M",  # Temperature at 2 meters
+        "RH2M",  # Relative humidity at 2 meters
+        "WS10M",  # Wind speed at 10 meters
         "ALLSKY_SFC_SW_DWN",  # Solar radiation
     ]
-    
+
     REGIONS = {
         "yaounde": {"lat": 3.8480, "lon": 11.5021},
         "douala": {"lat": 4.0511, "lon": 9.7679},
@@ -197,11 +213,11 @@ class NASAPowerCollector:
         "maroua": {"lat": 10.5910, "lon": 14.3159},
         "bafoussam": {"lat": 5.4778, "lon": 10.4176},
     }
-    
+
     def __init__(self, db: AsyncSession):
         self.db = db
         self.client = httpx.AsyncClient(timeout=60.0)
-    
+
     async def collect_meteo_data(
         self,
         start_date: str = "20200101",
@@ -214,7 +230,7 @@ class NASAPowerCollector:
             "regions_processed": 0,
             "errors": [],
         }
-        
+
         for region_name, coords in self.REGIONS.items():
             try:
                 data = await self._fetch_region_data(
@@ -223,11 +239,11 @@ class NASAPowerCollector:
                     start_date,
                     end_date,
                 )
-                
+
                 if data and "properties" in data:
                     parameters = data["properties"].get("parameter", {})
                     dates = list(parameters.get(self.PARAMETERS[0], {}).keys())
-                    
+
                     for date_str in dates:
                         meteo_data = {
                             "date": date_str,
@@ -235,25 +251,27 @@ class NASAPowerCollector:
                             "lat": coords["lat"],
                             "lon": coords["lon"],
                         }
-                        
+
                         for param in self.PARAMETERS:
                             param_data = parameters.get(param, {})
                             meteo_data[param] = param_data.get(date_str)
-                        
+
                         # Store data
                         await self._store_meteo_data(meteo_data)
                         results["records_collected"] += 1
-                    
+
                     results["regions_processed"] += 1
-                    
+
             except Exception as e:
-                results["errors"].append({
-                    "region": region_name,
-                    "error": str(e),
-                })
-        
+                results["errors"].append(
+                    {
+                        "region": region_name,
+                        "error": str(e),
+                    }
+                )
+
         return results
-    
+
     async def _fetch_region_data(
         self,
         lat: float,
@@ -272,18 +290,18 @@ class NASAPowerCollector:
             "end": end,
             "format": "JSON",
         }
-        
+
         response = await self.client.get(url, params=params)
         response.raise_for_status()
         return response.json()
-    
+
     async def _store_meteo_data(self, data: Dict[str, Any]) -> None:
         """Store meteorological data."""
         date_str = data["date"]
         year = int(date_str[:4])
         month = int(date_str[4:6])
         day = int(date_str[6:8])
-        
+
         processed = ProcessedData(
             domain="meteo",
             indicator="meteo_data",
@@ -305,23 +323,23 @@ class NASAPowerCollector:
 
 class FAOCollector:
     """Collector for FAO FAOSTAT data API."""
-    
+
     BASE_URL = "https://fenixservices.fao.org/faostat/api/v1/en/data"
-    
+
     # Cameroon country code
     COUNTRY_CODE = "45"  # Cameroon
-    
+
     # Key datasets
     DATASETS = {
         "QCL": "Production",  # Crops and Livestock Products
-        "RL": "Land Use",     # Land Use
-        "QAD": "Prices",      # Prices
+        "RL": "Land Use",  # Land Use
+        "QAD": "Prices",  # Prices
     }
-    
+
     def __init__(self, db: AsyncSession):
         self.db = db
         self.client = httpx.AsyncClient(timeout=60.0)
-    
+
     async def collect_agricultural_data(
         self,
         years: List[int] = None,
@@ -329,14 +347,14 @@ class FAOCollector:
         """Collect FAO agricultural data."""
         if years is None:
             years = list(range(2010, 2024))
-        
+
         results = {
             "source": "fao",
             "records_collected": 0,
             "datasets_processed": 0,
             "errors": [],
         }
-        
+
         for dataset_code, dataset_name in self.DATASETS.items():
             try:
                 data = await self._fetch_dataset(
@@ -344,22 +362,24 @@ class FAOCollector:
                     self.COUNTRY_CODE,
                     years,
                 )
-                
+
                 if data and "data" in data:
                     for item in data["data"]:
                         await self._store_fao_data(item, dataset_name)
                         results["records_collected"] += 1
-                    
+
                     results["datasets_processed"] += 1
-                    
+
             except Exception as e:
-                results["errors"].append({
-                    "dataset": dataset_code,
-                    "error": str(e),
-                })
-        
+                results["errors"].append(
+                    {
+                        "dataset": dataset_code,
+                        "error": str(e),
+                    }
+                )
+
         return results
-    
+
     async def _fetch_dataset(
         self,
         dataset_code: str,
@@ -368,20 +388,20 @@ class FAOCollector:
     ) -> Dict[str, Any]:
         """Fetch a specific FAO dataset."""
         url = f"{self.BASE_URL}/{dataset_code}"
-        
+
         payload = {
             "area": [country_code],
             "years": [str(y) for y in years],
         }
-        
+
         response = await self.client.post(url, json=payload)
         response.raise_for_status()
         return response.json()
-    
+
     async def _store_fao_data(self, item: Dict[str, Any], dataset_name: str) -> None:
         """Store FAO data."""
         year = int(item.get("year", 2020))
-        
+
         processed = ProcessedData(
             domain="agriculture",
             indicator=f"fao_{dataset_name}",

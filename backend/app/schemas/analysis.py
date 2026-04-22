@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, validator
 # Base Analysis Request
 class AnalysisRequest(BaseModel):
     """Base schema for analysis requests."""
+
     dataset_id: int = Field(..., gt=0)
     columns: List[str] = Field(..., min_items=1)
 
@@ -14,11 +15,13 @@ class AnalysisRequest(BaseModel):
 # Descriptive Analysis
 class DescriptiveRequest(AnalysisRequest):
     """Request for descriptive statistics."""
+
     confidence_level: float = Field(0.95, ge=0.8, le=0.99)
 
 
 class DescriptiveResult(BaseModel):
     """Result of descriptive analysis."""
+
     column: str
     count: int
     mean: Optional[float] = None
@@ -38,6 +41,7 @@ class DescriptiveResult(BaseModel):
 
 class CorrelationMatrix(BaseModel):
     """Correlation matrix result."""
+
     columns: List[str]
     values: List[List[float]]
     p_values: Optional[List[List[float]]] = None
@@ -46,6 +50,7 @@ class CorrelationMatrix(BaseModel):
 
 class DescriptiveAnalysisResponse(BaseModel):
     """Complete descriptive analysis response."""
+
     statistics: List[DescriptiveResult]
     correlations: Optional[CorrelationMatrix] = None
     plot_data: Optional[Dict[str, Any]] = None
@@ -54,6 +59,7 @@ class DescriptiveAnalysisResponse(BaseModel):
 # Regression Analysis
 class RegressionRequest(BaseModel):
     """Request for regression analysis."""
+
     dataset_id: int = Field(..., gt=0)
     target_column: str = Field(..., min_length=1)
     feature_columns: List[str] = Field(..., min_items=1)
@@ -62,7 +68,7 @@ class RegressionRequest(BaseModel):
     polynomial_degree: Optional[int] = Field(None, ge=2, le=5)
     alpha: float = Field(1.0, ge=0.0)  # For regularization
     l1_ratio: float = Field(0.5, ge=0.0, le=1.0)  # For ElasticNet
-    
+
     @validator("polynomial_degree")
     def validate_polynomial_degree(cls, v, values):
         if values.get("method") == "polynomial" and v is None:
@@ -72,6 +78,7 @@ class RegressionRequest(BaseModel):
 
 class RegressionMetrics(BaseModel):
     """Regression metrics."""
+
     r2_score: float
     adjusted_r2: Optional[float] = None
     rmse: float
@@ -83,6 +90,7 @@ class RegressionMetrics(BaseModel):
 
 class CoefficientInfo(BaseModel):
     """Coefficient information."""
+
     name: str
     value: float
     std_error: Optional[float] = None
@@ -95,6 +103,7 @@ class CoefficientInfo(BaseModel):
 
 class RegressionDiagnostics(BaseModel):
     """Regression diagnostics."""
+
     durbin_watson: Optional[float] = None
     jarque_bera_stat: Optional[float] = None
     jarque_bera_pvalue: Optional[float] = None
@@ -105,6 +114,7 @@ class RegressionDiagnostics(BaseModel):
 
 class RegressionResult(BaseModel):
     """Complete regression result."""
+
     intercept: float
     coefficients: List[CoefficientInfo]
     metrics: RegressionMetrics
@@ -120,6 +130,7 @@ class RegressionResult(BaseModel):
 # PCA Analysis
 class PCARequest(BaseModel):
     """Request for PCA analysis."""
+
     dataset_id: int = Field(..., gt=0)
     columns: List[str] = Field(..., min_items=2)
     n_components: Optional[int] = Field(None, ge=1)
@@ -129,6 +140,7 @@ class PCARequest(BaseModel):
 
 class PCAComponent(BaseModel):
     """PCA component information."""
+
     component_number: int
     eigenvalue: float
     variance_explained_pct: float
@@ -138,6 +150,7 @@ class PCAComponent(BaseModel):
 
 class PCAIndividual(BaseModel):
     """Individual projection in PCA."""
+
     id: int
     coordinates: List[float]
     cos2: List[float]
@@ -146,6 +159,7 @@ class PCAIndividual(BaseModel):
 
 class PCAResult(BaseModel):
     """Complete PCA result."""
+
     n_components: int
     components: List[PCAComponent]
     individuals: List[PCAIndividual]
@@ -158,12 +172,12 @@ class PCAResult(BaseModel):
 # Classification Analysis
 class ClassificationRequest(BaseModel):
     """Request for classification."""
+
     dataset_id: int = Field(..., gt=0)
     target_column: str = Field(..., min_length=1)
     feature_columns: List[str] = Field(..., min_items=1)
     algorithm: Literal[
-        "logistic", "svm", "random_forest", "gradient_boosting", 
-        "knn", "naive_bayes"
+        "logistic", "svm", "random_forest", "gradient_boosting", "knn", "naive_bayes"
     ] = "logistic"
     test_size: float = Field(0.2, ge=0.1, le=0.4)
     cv_folds: int = Field(5, ge=2, le=10)
@@ -172,6 +186,7 @@ class ClassificationRequest(BaseModel):
 
 class ClassificationMetrics(BaseModel):
     """Classification metrics."""
+
     accuracy: float
     precision: float
     recall: float
@@ -182,6 +197,7 @@ class ClassificationMetrics(BaseModel):
 
 class ClassMetrics(BaseModel):
     """Per-class metrics."""
+
     class_name: str
     precision: float
     recall: float
@@ -191,6 +207,7 @@ class ClassMetrics(BaseModel):
 
 class ConfusionMatrix(BaseModel):
     """Confusion matrix."""
+
     labels: List[str]
     matrix: List[List[int]]
     normalized_matrix: Optional[List[List[float]]] = None
@@ -198,6 +215,7 @@ class ConfusionMatrix(BaseModel):
 
 class ClassificationResult(BaseModel):
     """Complete classification result."""
+
     algorithm: str
     overall_metrics: ClassificationMetrics
     class_metrics: List[ClassMetrics]
@@ -212,6 +230,7 @@ class ClassificationResult(BaseModel):
 # Clustering Analysis
 class ClusteringRequest(BaseModel):
     """Request for clustering."""
+
     dataset_id: int = Field(..., gt=0)
     columns: List[str] = Field(..., min_items=2)
     algorithm: Literal["kmeans", "dbscan", "hierarchical", "gmm", "spectral"] = "kmeans"
@@ -223,6 +242,7 @@ class ClusteringRequest(BaseModel):
 
 class ClusterInfo(BaseModel):
     """Cluster information."""
+
     cluster_id: int
     size: int
     centroid: List[float]
@@ -232,6 +252,7 @@ class ClusterInfo(BaseModel):
 
 class ClusteringMetrics(BaseModel):
     """Clustering quality metrics."""
+
     silhouette_score: float
     calinski_harabasz_score: Optional[float] = None
     davies_bouldin_score: Optional[float] = None
@@ -240,6 +261,7 @@ class ClusteringMetrics(BaseModel):
 
 class OptimalKResult(BaseModel):
     """Optimal K determination result."""
+
     method: str
     optimal_k: int
     scores: Dict[str, List[float]]
@@ -248,6 +270,7 @@ class OptimalKResult(BaseModel):
 
 class ClusteringResult(BaseModel):
     """Complete clustering result."""
+
     algorithm: str
     n_clusters: int
     clusters: List[ClusterInfo]

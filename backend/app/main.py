@@ -29,9 +29,9 @@ async def lifespan(app: FastAPI):
     await init_db()
     await redis_client.ping()
     logger.info("Application started successfully!")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down...")
     await redis_client.close()
@@ -98,7 +98,7 @@ async def health_check():
         redis_status = "healthy"
     except Exception as e:
         redis_status = f"unhealthy: {str(e)}"
-    
+
     return {
         "status": "healthy",
         "redis": redis_status,

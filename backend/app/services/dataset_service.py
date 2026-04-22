@@ -10,10 +10,10 @@ from app.schemas.datasets import Dataset, DatasetStats, DatasetQuery
 
 class DatasetService:
     """Service for dataset operations."""
-    
+
     def __init__(self, db: AsyncSession):
         self.db = db
-    
+
     async def list_datasets(
         self,
         domain: Optional[str] = None,
@@ -23,22 +23,22 @@ class DatasetService:
         # Placeholder implementation
         # In real implementation, query from database
         return []
-    
+
     async def get_dataset(self, dataset_id: int) -> Optional[Dataset]:
         """Get a specific dataset."""
         # Placeholder implementation
         return None
-    
+
     async def get_statistics(self, dataset_id: int) -> Optional[DatasetStats]:
         """Get dataset statistics."""
         # Placeholder implementation
         return None
-    
+
     async def query_data(self, dataset_id: int, query: DatasetQuery):
         """Query dataset with filters."""
         # Placeholder implementation
         return {"data": [], "total": 0}
-    
+
     async def get_data(
         self,
         dataset_id: int,

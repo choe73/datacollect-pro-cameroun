@@ -8,7 +8,7 @@ from app.core.config import settings
 
 # Create async engine
 async_engine = create_async_engine(
-    settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"),
+    str(settings.DATABASE_URL).replace("postgresql://", "postgresql+asyncpg://"),
     echo=settings.DEBUG,
     poolclass=NullPool if settings.is_development else None,
     future=True,
@@ -47,4 +47,5 @@ async def init_db():
             analysis_results,
             celery_jobs,
         )
+
         await conn.run_sync(Base.metadata.create_all)

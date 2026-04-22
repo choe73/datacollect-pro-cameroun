@@ -15,6 +15,22 @@ from app.schemas.analysis import (
     ClusteringResult,
 )
 from app.schemas.common import PaginationParams, PaginatedResponse, ErrorResponse
+from app.schemas.user import (
+    UserCreate,
+    User,
+    UserUpdate,
+    Token,
+    LoginRequest,
+    Subscription,
+    SubscriptionPlan,
+    SubscriptionQuota,
+    AnalyticsEventCreate,
+    AnalyticsSummary,
+    ConsentStatus,
+    ConsentUpdate,
+    FeedbackCreate,
+    Feedback,
+)
 
 __all__ = [
     "Dataset",
@@ -34,4 +50,18 @@ __all__ = [
     "PaginationParams",
     "PaginatedResponse",
     "ErrorResponse",
+    "UserCreate",
+    "User",
+    "UserUpdate",
+    "Token",
+    "LoginRequest",
+    "Subscription",
+    "SubscriptionPlan",
+    "SubscriptionQuota",
+    "AnalyticsEventCreate",
+    "AnalyticsSummary",
+    "ConsentStatus",
+    "ConsentUpdate",
+    "FeedbackCreate",
+    "Feedback",
 ]

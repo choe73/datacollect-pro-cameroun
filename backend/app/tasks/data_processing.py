@@ -22,7 +22,7 @@ def process_raw_data(raw_data_id: int) -> Dict[str, Any]:
 def clean_old_raw_data(retention_days: int = 180) -> Dict[str, Any]:
     """Clean old raw data to save space."""
     cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
-    
+
     # Placeholder implementation
     return {
         "status": "success",
